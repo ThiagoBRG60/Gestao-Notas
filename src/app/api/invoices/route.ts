@@ -12,6 +12,7 @@ async function GET(request: NextRequest) {
       const data = await sql`SELECT * FROM invoices ${status ? sql`WHERE status = ${status}` : sql``}`
       return NextResponse.json(data, {status: 200})  
    } catch (error) {
+      console.error("ERRO AO BUSCAR INVOICES:", error)
       return NextResponse.json({message: "Não foi possível buscar as notas fiscais"}, {status: 500})
    }
 }
