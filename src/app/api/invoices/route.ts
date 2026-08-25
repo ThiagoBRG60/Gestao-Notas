@@ -9,7 +9,7 @@ async function GET(request: NextRequest) {
    if (status && !Object.values(InvoiceStatus).includes(status as any)) return NextResponse.json({message: "O status enviado é inválido"}, {status: 400})
 
    try {
-      const data = await sql`SELECT * FROM invoices ${status ? sql`WHERE status = ${status}` : sql``}`
+      const data = await sql`SELECT * FROM invoices ${status ? sql`WHERE status = ${status}` : sql`ORDER BY status`}`
       return NextResponse.json(data, {status: 200})  
    } catch (error) {
       console.error("ERRO AO BUSCAR INVOICES:", error)
