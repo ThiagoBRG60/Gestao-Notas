@@ -1,69 +1,105 @@
-import Image from "next/image";
+"use client"
+import { getInvoices, processInvoice } from "@/services/invoices"
+import { InvoiceProps, InvoiceStatus, InvoiceStatusType } from "@/types/invoices"
+import { ChangeEvent, useEffect, useState } from "react"
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+function Home() {
+	const [invoices, setInvoices] = useState<InvoiceProps[]>([])
+
+	useEffect(() => {
+		async function initializeInvoices() {
+         try {
+            const data = await getInvoices()
+            setInvoices(data)
+         } catch (error) {
+            console.error(error)
+         }
+		}
+		initializeInvoices()
+	}, [])
+
+	async function handleFilter(e: ChangeEvent<HTMLSelectElement>) {
+		const filter = e.currentTarget.value
+
+      try {
+         const data = !filter ? await getInvoices() : await getInvoices(filter as InvoiceStatusType)
+         setInvoices(data)
+      } catch (error) {
+         console.error(error)
+      }
+	}
+
+	async function handleClick(id: number) {
+      try {
+         await processInvoice(String(id))
+         setInvoices((prev) => prev.map((item) => (item.id === id ? { ...item, status: InvoiceStatus.PROCESSED } : item)))
+      } catch (error) {
+         console.error(error)
+      }
+	}
+
+	return (
+		<div className="w-full flex flex-col gap-5 p-5 bg-slate-50">
+			<div className="w-full flex flex-col gap-2">
+				<label htmlFor="filter" className="font-medium text-sm text-slate-700">
+					Filtro
+				</label>
+
+				<select onChange={handleFilter} id="filter" className="w-full h-11 px-3 border border-slate-200 rounded-lg font-normal text-sm text-slate-700 outline-none transition duration-200 bg-white focus:border-slate-400">
+					<option value="">Selecione uma opção</option>
+					<option value="PENDING">Pendentes</option>
+					<option value="PROCESSED">Processadas</option>
+					<option value="CANCELED">Canceladas</option>
+				</select>
+			</div>
+
+			<ul className="w-full overflow-hidden border border-slate-200 rounded-xl bg-white">
+				{invoices.length > 0 ? (
+					invoices.map((invoice) => (
+						<li key={invoice.id} className="w-full flex flex-col gap-5 p-5 border-b border-slate-100 last:border-b-0 sm:grid sm:grid-cols-2 lg:grid-cols-7">
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">Número</span>
+								<span className="font-medium text-sm text-slate-900">{invoice.number}</span>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">CNPJ</span>
+								<span className="font-medium text-sm text-slate-900">{invoice.cnpj}</span>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">Tipo</span>
+								<span className="font-medium text-sm text-slate-900">{invoice.type}</span>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">Valor</span>
+								<span className="font-medium text-sm text-slate-900">{invoice.amount}</span>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">Data</span>
+								<span className="font-medium text-sm text-slate-900">{invoice.issued_at}</span>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<span className="font-medium text-xs text-slate-500">Status</span>
+								<span className="w-fit px-2 py-1 rounded-md font-medium text-xs text-amber-700 bg-amber-50">{invoice.status}</span>
+							</div>
+
+							{invoice.status === InvoiceStatus.PENDING && (
+								<button onClick={() => handleClick(invoice.id)} className="w-full h-10 px-4 cursor-pointer border border-slate-200 rounded-lg font-medium text-sm text-slate-700 transition duration-200 bg-white hover:border-slate-300 hover:bg-slate-50 lg:w-auto">
+									Processar
+								</button>
+							)}
+						</li>
+					))
+				) : (
+					<p className="px-3.75 py-2.5">Nenhuma nota fiscal encontrada</p>
+				)}
+			</ul>
+		</div>
+	)
 }
+
+export default Home
